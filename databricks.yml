@@ -1,94 +1,180 @@
 bundle:
-  name: demo_workflow
+  name: timeseries_ingest_solution_accelerator
+
+sync:
+  include:
+    - modules/**
+
+include:
+  - resources/*.yml
 
 variables:
-  # Project name - replace with your solution accelerator name
-  project_name:
-    description: "Name of your solution accelerator"
-    default: "my-solution-accelerator"
-    
-  # The "warehouse_id" variable is used to reference the warehouse used by the dashboard.
+  catalog:
+    description: used for dev and prod
+    default: mda_demo
+  schema:
+    description: used for dev and prod
+    default: default
+  warehouse_name:
+    description: >
+      Name of the SQL warehouse backing the MDA_Report dashboard. Default is the
+      standard FE/demo shared warehouse; override per workspace with
+      --var=warehouse_name="<your warehouse>" (e.g. on e2-demo-field-eng).
+    default: "Shared Unity Catalog Serverless"
   warehouse_id:
+    description: >
+      Resolved by looking up warehouse_name — no --var needed when the default
+      warehouse exists. Configure the warehouse_name variable to point at a
+      different warehouse instead of editing this.
     lookup:
-      # Replace this with the name of your SQL warehouse.
-      warehouse: "Shared Unity Catalog Serverless"
-      
-  # Environment variable used for deployment paths
-  environment:
-    description: "Deployment environment (dev, staging, prod)"
-    default: "dev"
+      warehouse: ${var.warehouse_name}
+  use_demo_data:
+    description: >
+      Passed to a_demo_setup (True = allow reset + OBD zip import; False = live, no drops).
+    default: "True"
+  partitioning:
+    description: mdf_signals partition strategy (group or stripe)
+    default: group
+  target_partition_mb:
+    description: target output size per Spark task for mdf_signals
+    default: "64"
+  stripe_target_mb:
+    description: compressed bytes per stripe when partitioning=stripe
+    default: "128"
+  max_groups_per_partition:
+    description: cap on small MDF groups coalesced into one mdf_signals task
+    default: "64"
+  write_masters:
+    description: when True, write mdf_masters output to the masters table
+    default: "False"
+  spark_version:
+    description: >
+      Spark runtime for prod ingest job cluster. Must ship Python 3.12 for
+      databricks-impulse (requires-python >=3.12,<3.13); 16.4.x LTS = Python 3.12.
+    default: "16.4.x-scala2.12"
+  node_type_id:
+    description: Worker node type for prod ingest job cluster
+    default: i3.xlarge
+  cluster_id:
+    description: >
+      Existing cluster ID for prod_interactive only. Leave default empty for dev/prod;
+      pass --var=cluster_id=<id> when deploying or running prod_interactive.
+    default: ""
 
 targets:
   dev:
-    default: true
     mode: development
-
-# Customize the resources below based on your solution accelerator needs
-resources:
-  # Uncomment and customize if you have Databricks Apps
-  # apps:
-  #   your_app:
-  #     name: "your-app-name"
-  #     description: "Your app description"
-  #     source_code_path: "/Users/${workspace.current_user.userName}/${var.project_name}-${var.environment}/files/apps/your_app"
-
-  # Uncomment and customize if you have dashboards
-  # dashboards:
-  #   your_dashboard:
-  #     display_name: "Your Dashboard"
-  #     file_path: "./dashboards/your_dashboard.lvdash.json"
-  #     warehouse_id: "${var.warehouse_id}"
-
-  # Example job workflow - customize based on your notebooks
-  jobs:
-    example_workflow:
-      name: "${var.project_name} - Example Workflow"
-      tasks:
-        - task_key: example_notebook
-          notebook_task:
-            notebook_path: "./notebooks/example_notebook.ipynb"
-        - task_key: example_databricks_notebook
-          depends_on:
-            - task_key: example_notebook
-          notebook_task:
-            notebook_path: "./notebooks/example_databricks_notebook.py"
-
-# Example resources you can uncomment and customize:
-# resources:
-#   apps:
-#     your_app:
-#       name: "your-app-name"
-#       description: "Your app description"
-#       source_code_path: "./apps/your_app"
-#
-#   jobs:
-#     your_workflow:
-#       name: "Your Workflow Name"
-#       tasks:
-#         - task_key: first_task
-#           notebook_task:
-#             notebook_path: "./notebooks/your_first_notebook.ipynb"
-#         - task_key: second_task
-#           depends_on:
-#             - task_key: first_task
-#           notebook_task:
-#             notebook_path: "./notebooks/your_second_notebook.ipynb"
-#
-#   pipelines:
-#     your_pipeline:
-#       name: "Your Pipeline"
-#       storage: "/Shared/your-pipeline"
-#       configuration:
-#         your_config: "value"
-#
-#   models:
-#     your_model:
-#       name: "Your Model"
-#       model_path: "models/your_model"
-#
-#   dashboards:
-#     your_dashboard:
-#       display_name: "Your Dashboard"
-#       file_path: "./dashboards/your_dashboard.lvdash.json"
-
-# For more options and schema, see: https://docs.databricks.com/aws/en/dev-tools/bundles/settings
+    default: true
+    resources:
+      jobs:
+        MDA_Demo:
+          environments:
+            - environment_key: dev_env
+              spec:
+                client: "4"
+                dependencies:
+                  - "asammdf>=8.8.0"
+          tasks:
+            - task_key: demo_setup
+              environment_key: dev_env
+              max_retries: 0
+            - task_key: detect_new_files
+              environment_key: dev_env
+              max_retries: 0
+            - task_key: get_next_batch
+              environment_key: dev_env
+              max_retries: 0
+            - task_key: mdf_to_delta
+              environment_key: dev_env
+              max_retries: 0
+            - task_key: channel_metadata
+              environment_key: dev_env
+              max_retries: 0
+            - task_key: container_metadata
+              environment_key: dev_env
+              max_retries: 0
+            - task_key: conversion_failed
+              environment_key: dev_env
+              max_retries: 0
+            - task_key: conversion_succeeded
+              environment_key: dev_env
+              max_retries: 0
+  prod:
+    mode: production
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      use_demo_data:
+        default: "False"
+      partitioning:
+        default: stripe
+      target_partition_mb:
+        default: "128"
+      stripe_target_mb:
+        default: "256"
+      write_masters:
+        default: "True"
+    resources:
+      jobs:
+        MDA_Demo:
+          job_clusters:
+            - job_cluster_key: ingest_cluster
+              new_cluster:
+                spark_version: ${var.spark_version}
+                node_type_id: ${var.node_type_id}
+                num_workers: 2
+                data_security_mode: USER_ISOLATION
+                spark_conf:
+                  spark.databricks.delta.optimizeWrite.enabled: "true"
+                custom_tags:
+                  project: timeseries_ingest_solution_accelerator
+          tasks:
+            - task_key: detect_new_files
+              job_cluster_key: ingest_cluster
+            - task_key: get_next_batch
+              job_cluster_key: ingest_cluster
+            - task_key: mdf_to_delta
+              job_cluster_key: ingest_cluster
+            - task_key: channel_metadata
+              job_cluster_key: ingest_cluster
+            - task_key: container_metadata
+              job_cluster_key: ingest_cluster
+            - task_key: conversion_failed
+              job_cluster_key: ingest_cluster
+            - task_key: conversion_succeeded
+              job_cluster_key: ingest_cluster
+  prod_interactive:
+    mode: production
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      use_demo_data:
+        default: "False"
+      partitioning:
+        default: stripe
+      target_partition_mb:
+        default: "128"
+      stripe_target_mb:
+        default: "256"
+      write_masters:
+        default: "True"
+    resources:
+      jobs:
+        MDA_Demo:
+          tasks:
+            - task_key: demo_setup
+              existing_cluster_id: ${var.cluster_id}
+            - task_key: detect_new_files
+              existing_cluster_id: ${var.cluster_id}
+            - task_key: get_next_batch
+              existing_cluster_id: ${var.cluster_id}
+            - task_key: mdf_to_delta
+              existing_cluster_id: ${var.cluster_id}
+            - task_key: channel_metadata
+              existing_cluster_id: ${var.cluster_id}
+            - task_key: container_metadata
+              existing_cluster_id: ${var.cluster_id}
+            - task_key: conversion_failed
+              existing_cluster_id: ${var.cluster_id}
+            - task_key: conversion_succeeded
+              existing_cluster_id: ${var.cluster_id}

@@ -1,0 +1,65 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#1B3139",
+    "primaryTextColor": "#FFFFFF",
+    "primaryBorderColor": "#0F2028",
+    "lineColor": "#555555",
+    "secondaryColor": "#2272B4",
+    "tertiaryColor": "#F4F4F4",
+    "clusterBkg": "#F0F4F8",
+    "clusterBorder": "#AABBCC",
+    "edgeLabelBackground": "#FFFFFF",
+    "fontFamily": "Arial, Helvetica, sans-serif",
+    "fontSize": "14px"
+  }
+}}%%
+flowchart TD
+
+  subgraph SG1["Setup &amp; Batch Selection"]
+    direction TB
+    demo_setup["Demo Setup<br/>(create UC catalog/schema/volumes,<br/>stage demo MDF4 data)"]
+    detect_new_files["Detect New Files<br/>(Auto Loader scan,<br/>insert rows into status table)"]
+    get_next_batch["Get Next Batch<br/>(pick next run_id,<br/>mark 'in_progress')"]
+    check_data_availability{{"Data Available?<br/>(next_run_id != 'noop')"}}
+
+    demo_setup --> detect_new_files
+    detect_new_files --> get_next_batch
+    get_next_batch --> check_data_availability
+  end
+
+  check_data_availability -->|"false (no-op)"| skip_run(["Skip Run"])
+
+  subgraph SG2["Processing (impulse_data_sources.mdf → Delta)"]
+    direction TB
+    mdf_to_delta["MDF Ingest<br/>(mdf_signals RLE → channels,<br/>mdf_metadata → bronze_meta,<br/>optional mdf_masters)"]
+    channel_metadata["Channel Metadata<br/>(channel-level tags &amp; metrics<br/>from channels / bronze_meta)"]
+    container_metadata["Container Metadata<br/>(file tags,<br/>container-level metrics)"]
+
+    mdf_to_delta --> channel_metadata
+    channel_metadata --> container_metadata
+  end
+
+  check_data_availability -->|true| mdf_to_delta
+
+  subgraph SG3["Status Update"]
+    direction LR
+    conversion_succeeded["Status: Succeeded<br/>(update status table)"]
+    conversion_failed["Status: Failed<br/>(on any upstream failure)"]
+  end
+
+  container_metadata --> conversion_succeeded
+  SG2 -.->|"AT_LEAST_ONE_FAILED"| conversion_failed
+
+  style demo_setup         fill:#1B3139,color:#FFFFFF,stroke:#0F2028,stroke-width:2px
+  style detect_new_files   fill:#1B3139,color:#FFFFFF,stroke:#0F2028,stroke-width:2px
+  style get_next_batch     fill:#1B3139,color:#FFFFFF,stroke:#0F2028,stroke-width:2px
+  style check_data_availability fill:#FF3621,color:#FFFFFF,stroke:#CC2010,stroke-width:2px
+  style mdf_to_delta       fill:#B97A56,color:#FFFFFF,stroke:#8A5A3A,stroke-width:2px
+  style channel_metadata   fill:#2272B4,color:#FFFFFF,stroke:#155A99,stroke-width:2px
+  style container_metadata fill:#2272B4,color:#FFFFFF,stroke:#155A99,stroke-width:2px
+  style conversion_succeeded fill:#00A972,color:#FFFFFF,stroke:#007A52,stroke-width:2px
+  style conversion_failed  fill:#D6362B,color:#FFFFFF,stroke:#AA2010,stroke-width:2px
+  style skip_run           fill:#EEEEEE,color:#333333,stroke:#AAAAAA,stroke-width:2px
+
+  classDef sgStyle fill:#F0F4F8,stroke:#AABBCC,stroke-width:2px,color:#222222

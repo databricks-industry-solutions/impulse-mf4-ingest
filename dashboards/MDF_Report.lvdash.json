@@ -1,0 +1,805 @@
+{
+  "datasets": [
+    {
+      "name": "ds_container",
+      "displayName": "container_metrics",
+      "queryLines": [
+        "SELECT * FROM mda_demo.default.container_metrics"
+      ]
+    },
+    {
+      "name": "ds_channel",
+      "displayName": "channel_metrics",
+      "queryLines": [
+        "SELECT * FROM mda_demo.default.channel_metrics"
+      ]
+    },
+    {
+      "name": "ds_rpm_hist",
+      "displayName": "rpm_histogram",
+      "queryLines": [
+        "SELECT lower_bound, MEASURE(total_duration_s) AS duration_s\n",
+        "FROM mda_demo.default.mv_report_histogram\n",
+        "WHERE histogram_name = 'rpm_histogram'\n",
+        "GROUP BY lower_bound ORDER BY lower_bound"
+      ]
+    },
+    {
+      "name": "ds_speed_hist",
+      "displayName": "speed_histogram",
+      "queryLines": [
+        "SELECT lower_bound, MEASURE(total_duration_s) AS duration_s\n",
+        "FROM mda_demo.default.mv_report_histogram\n",
+        "WHERE histogram_name = 'speed_histogram'\n",
+        "GROUP BY lower_bound ORDER BY lower_bound"
+      ]
+    },
+    {
+      "name": "ds_heatmap",
+      "displayName": "rpm_speed_heatmap",
+      "queryLines": [
+        "SELECT x_lower_bound, y_lower_bound, MEASURE(total_duration_s) AS duration_s\n",
+        "FROM mda_demo.default.mv_report_heatmap\n",
+        "GROUP BY x_lower_bound, y_lower_bound"
+      ]
+    },
+    {
+      "name": "ds_container_stats",
+      "displayName": "container_stats",
+      "queryLines": [
+        "SELECT container_id, channel_name, aggregation_label, MEASURE(stat_value) AS statistic_value\n",
+        "FROM mda_demo.default.mv_report_stats\n",
+        "WHERE stats_name = 'container_stats'\n",
+        "GROUP BY container_id, channel_name, aggregation_label"
+      ]
+    },
+    {
+      "name": "ds_milestones",
+      "displayName": "values_at_distance_milestones",
+      "queryLines": [
+        "SELECT container_id, MEASURE(milestone_speed) AS vehicle_speed, MEASURE(milestone_rpm) AS engine_rpm\n",
+        "FROM mda_demo.default.mv_report_stats\n",
+        "WHERE stats_name = 'values_at_distance_milestones'\n",
+        "GROUP BY container_id, event_instance_id"
+      ]
+    },
+    {
+      "name": "d0aed8cd",
+      "displayName": "status",
+      "config": {
+        "version": "1.1",
+        "source": "mda_demo.default.status",
+        "dimensions": [
+          {
+            "expr": "source.*"
+          }
+        ],
+        "measures": [
+          {
+            "displayName": "Total Processed",
+            "synonyms": [
+              "run count",
+              "number of runs"
+            ],
+            "name": "total_run_files",
+            "expr": "SUM(filename)",
+            "comment": "Total number of distinct runs processed"
+          },
+          {
+            "displayName": "Failed",
+            "synonyms": [
+              "failure count",
+              "unsuccessful runs"
+            ],
+            "name": "failed_runs",
+            "expr": "COUNT(DISTINCT CASE WHEN status = 'failed' THEN filename END)",
+            "comment": "Number of distinct runs with status marked as FAILURE"
+          },
+          {
+            "displayName": "Successful",
+            "synonyms": [
+              "success count",
+              "completed runs"
+            ],
+            "name": "successful_run_files",
+            "expr": "COUNT(DISTINCT CASE WHEN status = 'succeeded' THEN filename END)",
+            "comment": "Number of distinct runs with status marked as SUCCESS"
+          },
+          {
+            "displayName": "Average Processing Time (seconds)",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 2.0
+              }
+            },
+            "synonyms": [
+              "mean processing time",
+              "average duration"
+            ],
+            "name": "avg_processing_time_seconds",
+            "expr": "AVG(UNIX_TIMESTAMP(_processing_done_ts) - UNIX_TIMESTAMP(_load_ts))",
+            "comment": "Average time in seconds between load and processing completion"
+          }
+        ]
+      }
+    }
+  ],
+  "pages": [
+    {
+      "name": "report_overview",
+      "displayName": "Monitoring",
+      "layout": [
+        {
+          "widget": {
+            "name": "report-title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# MDF4 Signal Report"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "total-drives",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_container",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Drives (containers)",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(*)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "total-signals",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_channel",
+                  "fields": [
+                    {
+                      "name": "countdistinct(channel_name)",
+                      "expression": "COUNT(DISTINCT `channel_name`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Distinct signals",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(channel_name)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 1,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "41034270",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d0aed8cd",
+                  "fields": [
+                    {
+                      "name": "_load_ts",
+                      "expression": "`_load_ts`"
+                    },
+                    {
+                      "name": "measure(successful_run_files)",
+                      "expression": "MEASURE(`successful_run_files`)"
+                    },
+                    {
+                      "name": "measure(failed_runs)",
+                      "expression": "MEASURE(`failed_runs`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "mark": {
+                "colors": [
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 5
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 6
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 7
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 8
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 9
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
+                  }
+                ]
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "_load_ts",
+                  "displayName": "Timestamp",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "measure(successful_run_files)"
+                    },
+                    {
+                      "fieldName": "measure(failed_runs)"
+                    }
+                  ]
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "c44e99c3",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d0aed8cd",
+                  "fields": [
+                    {
+                      "name": "measure(avg_processing_time_seconds)",
+                      "expression": "MEASURE(`avg_processing_time_seconds`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Average Processing time [s]",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_processing_time_seconds)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    },
+                    "hideGroupSeparator": false
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 1,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "858f596f",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d0aed8cd",
+                  "fields": [
+                    {
+                      "name": "measure(failed_runs)",
+                      "expression": "MEASURE(`failed_runs`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Failed Files",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(failed_runs)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    },
+                    "hideGroupSeparator": false
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 1,
+            "width": 3,
+            "height": 3
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "report_results",
+      "displayName": "Report Results",
+      "layout": [
+        {
+          "widget": {
+            "name": "results-title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Report Results (Gold layer)\n",
+                "Computed by the `signal_report` notebook via the impulse reporting framework. **These are event-scoped, duration-weighted aggregations — not the full raw signal.** Each metric summarizes only the time windows where its event holds:\n",
+                "- **RPM histogram · Speed histogram · RPM-vs-Speed heatmap** — scoped to the **RPM event** (Engine RPM between 2000 and 5000 rpm). Values are **duration in seconds** spent in each band/cell, not sample counts.\n",
+                "- **Per-container statistics** — min / median / mean / max over the **full measurement** (the whole drive, `container_event`).\n",
+                "- **Speed & RPM at each 10 km milestone** — values sampled at the **instant** the odometer crosses each additional 10 km (`distance_milestones`), so these are discrete points, not a continuous trace."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "rpm-histogram",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_rpm_hist",
+                  "fields": [
+                    {
+                      "name": "lower_bound",
+                      "expression": "`lower_bound`"
+                    },
+                    {
+                      "name": "duration_s",
+                      "expression": "SUM(`duration_s`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "RPM histogram — duration per band (all drives)"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "lower_bound",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Engine RPM (bin lower bound)"
+                },
+                "y": {
+                  "fieldName": "duration_s",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "duration [s]"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "speed-histogram",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_speed_hist",
+                  "fields": [
+                    {
+                      "name": "lower_bound",
+                      "expression": "`lower_bound`"
+                    },
+                    {
+                      "name": "duration_s",
+                      "expression": "SUM(`duration_s`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Speed histogram — duration per band (within RPM events)"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "lower_bound",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Vehicle Speed (km/h, bin lower bound)"
+                },
+                "y": {
+                  "fieldName": "duration_s",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "duration [s]"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 3,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "rpm-speed-heatmap",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_heatmap",
+                  "fields": [
+                    {
+                      "name": "sum(duration_s)",
+                      "expression": "SUM(`duration_s`)"
+                    },
+                    {
+                      "name": "x_lower_bound",
+                      "expression": "`x_lower_bound`"
+                    },
+                    {
+                      "name": "y_lower_bound",
+                      "expression": "`y_lower_bound`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "RPM vs Speed heatmap — duration (s)",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "widgetType": "heatmap",
+              "encodings": {
+                "x": {
+                  "fieldName": "x_lower_bound",
+                  "displayName": "Engine RPM",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "y_lower_bound",
+                  "displayName": "Vehicle Speed (km/h)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "sum(duration_s)",
+                  "displayName": "duration [s]",
+                  "scale": {
+                    "type": "quantitative",
+                    "reverse": false
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "milestone-scatter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_milestones",
+                  "fields": [
+                    {
+                      "name": "vehicle_speed",
+                      "expression": "`vehicle_speed`"
+                    },
+                    {
+                      "name": "engine_rpm",
+                      "expression": "`engine_rpm`"
+                    },
+                    {
+                      "name": "container_id",
+                      "expression": "`container_id`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Speed & RPM at each 10 km milestone"
+              },
+              "widgetType": "scatter",
+              "encodings": {
+                "x": {
+                  "fieldName": "vehicle_speed",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Vehicle Speed (km/h)"
+                },
+                "y": {
+                  "fieldName": "engine_rpm",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Engine RPM"
+                },
+                "color": {
+                  "fieldName": "container_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "drive"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "container-stats-table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_container_stats",
+                  "fields": [
+                    {
+                      "name": "container_id",
+                      "expression": "`container_id`"
+                    },
+                    {
+                      "name": "channel_name",
+                      "expression": "`channel_name`"
+                    },
+                    {
+                      "name": "aggregation_label",
+                      "expression": "`aggregation_label`"
+                    },
+                    {
+                      "name": "statistic_value",
+                      "expression": "`statistic_value`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "frame": {
+                "showTitle": true,
+                "title": "Per-container statistics (full measurement)"
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "container_id",
+                    "displayName": "drive"
+                  },
+                  {
+                    "fieldName": "channel_name",
+                    "displayName": "signal"
+                  },
+                  {
+                    "fieldName": "aggregation_label",
+                    "displayName": "stat"
+                  },
+                  {
+                    "fieldName": "statistic_value",
+                    "displayName": "value"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}

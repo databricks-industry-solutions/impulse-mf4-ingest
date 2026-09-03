@@ -1,0 +1,32 @@
+resources:
+  jobs:
+    MDA_Report:
+      name: MDA_MF4_Report
+      # Serverless in every target — the report is lightweight and independent of the
+      # ingest job's compute. databricks-impulse is %pip-installed inside the notebook.
+      environments:
+        - environment_key: report_env
+          spec:
+            client: "4"
+      tasks:
+        - task_key: signal_report
+          environment_key: report_env
+          notebook_task:
+            notebook_path: ../notebooks/reports/signal_report.py
+            source: WORKSPACE
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+
+  dashboards:
+    mdf_signal_report:
+      display_name: MDF4 Signal Report
+      file_path: ../dashboards/MDF_Report.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      # NOTE: the dashboard's dataset queries reference mda_demo.default.* directly
+      # (bundle ${var.*} placeholders are not substituted inside .lvdash.json — they
+      # reach Terraform verbatim). If you deploy to a different catalog/schema, edit
+      # the table names in dashboards/MDF_Report.lvdash.json. The signal_report
+      # notebook, by contrast, is parameterized via the catalog/schema widgets.

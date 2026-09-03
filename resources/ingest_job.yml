@@ -1,0 +1,100 @@
+resources:
+  jobs:
+    MDA_Demo:
+      name: MDA_MF4_Ingest_Demo
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: demo_setup
+          notebook_task:
+            notebook_path: ../notebooks/ingest_mdf/a_demo_setup.py
+            source: WORKSPACE
+        - task_key: detect_new_files
+          depends_on:
+            - task_key: demo_setup
+          notebook_task:
+            notebook_path: ../notebooks/ingest_mdf/b_detect_new_files.py
+            source: WORKSPACE
+        - task_key: get_next_batch
+          depends_on:
+            - task_key: detect_new_files
+          run_if: ALL_SUCCESS
+          notebook_task:
+            notebook_path: ../notebooks/ingest_mdf/b_get_next_batch.py
+            source: WORKSPACE
+        - task_key: check_data_availability
+          depends_on:
+            - task_key: get_next_batch
+          run_if: ALL_SUCCESS
+          condition_task:
+            op: NOT_EQUAL
+            left: "{{tasks.[get_next_batch].values.[next_run_id]}}"
+            right: "noop"
+        - task_key: mdf_to_delta
+          depends_on:
+            - task_key: check_data_availability
+              outcome: "true"
+          run_if: ALL_SUCCESS
+          notebook_task:
+            notebook_path: ../notebooks/ingest_mdf/c_mdf_to_delta.py
+            source: WORKSPACE
+        - task_key: channel_metadata
+          depends_on:
+            - task_key: mdf_to_delta
+          run_if: ALL_SUCCESS
+          notebook_task:
+            notebook_path: ../notebooks/ingest_mdf/d_channel_metadata.py
+            source: WORKSPACE
+        - task_key: container_metadata
+          depends_on:
+            - task_key: channel_metadata
+          run_if: ALL_SUCCESS
+          notebook_task:
+            notebook_path: ../notebooks/ingest_mdf/d_container_metadata.py
+            source: WORKSPACE
+        - task_key: conversion_failed
+          depends_on:
+            - task_key: container_metadata
+            - task_key: mdf_to_delta
+            - task_key: channel_metadata
+          run_if: AT_LEAST_ONE_FAILED
+          notebook_task:
+            notebook_path: ../notebooks/ingest_mdf/e_update_processing_status_failed.py
+            source: WORKSPACE
+        - task_key: conversion_succeeded
+          depends_on:
+            - task_key: container_metadata
+          run_if: ALL_SUCCESS
+          notebook_task:
+            notebook_path: ../notebooks/ingest_mdf/e_update_processing_status_succeeded.py
+            source: WORKSPACE
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: reset
+          default: False
+        - name: use_demo_data
+          default: ${var.use_demo_data}
+        - name: demo_data_path
+          default: ${workspace.file_path}/examples/obd_dataset.zip
+        - name: mdf4_volume
+          default: mdf4
+        - name: checkpoint_volume
+          default: mdf4_checkpoint
+        - name: write_masters
+          default: ${var.write_masters}
+        - name: partitioning
+          default: ${var.partitioning}
+        - name: target_partition_mb
+          default: ${var.target_partition_mb}
+        - name: stripe_target_mb
+          default: ${var.stripe_target_mb}
+        - name: max_groups_per_partition
+          default: ${var.max_groups_per_partition}
+        - name: reprocess_current_run
+          default: "True"
+        - name: reprocess_last_failed_run
+          default: "True"
+        - name: max_batch_size
+          default: 100

@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "timeseries-ingest-solution-accelerator"
+version = "0.1.0"
+description = "Databricks Solution Accelerator for MDF4 ingest to Delta"
+readme = "README.md"
+# Governs local dev/test tooling only (CI runs pytest on 3.11; tests import only `modules/utils`).
+# The Databricks *runtime* requires Python 3.12 for `databricks-impulse` — see docs/deployment.md.
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    "pandas>=2.0",
+    # Import-time deps of modules/utils (pure-Python tests don't start Spark, but the
+    # package imports pyspark/delta at module load). Pinned to the prod runtime (DBR 16.4).
+    "pyspark==4.0.0",
+    "delta-spark==4.0.1",
+]
+
+# This repo is a Databricks Asset Bundle, not an installable library. Declaring no
+# modules disables setuptools flat-layout auto-discovery, so `pip install -e ".[dev]"`
+# installs only the dev tools above (tests import `modules/utils` via pytest pythonpath).
+[tool.setuptools]
+py-modules = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["modules"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+"modules/utils/demo_conversion.py" = ["E501"]

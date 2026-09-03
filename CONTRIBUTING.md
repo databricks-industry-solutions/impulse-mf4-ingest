@@ -1,14 +1,37 @@
-### Contributor License Agreement (CLA)
+# Contributing
 
-By submitting a contribution to this repository, you certify that:
+We welcome contributions to this Databricks Solution Accelerator.
 
-1. **You have the right to submit the contribution.**  
-   You created the code/content yourself, or you have the right to submit it under the project's license.
+## Before you start
 
-2. **You grant us a license to use your contribution.**  
-   You agree that your contribution will be licensed under the same terms as the rest of this project, and you grant the project maintainers the right to use, modify, and distribute your contribution as part of the project.
+- Review the [Databricks License](LICENSE.md) and ensure your employer permits contribution under its terms.
+- Sign the [Databricks Contributor License Agreement](https://cla.databricks.com/) (CLA) before your first PR is merged.
 
-3. **You are not submitting confidential or proprietary information.**  
-   Your contribution does not include anything you don’t have permission to share publicly.
+## Development setup
 
-If you are contributing on behalf of an organization, you confirm that you have the authority to do so. You agree to confirm these terms in your pull request. Any request that does not explicitely accept the terms will be assumed to have accepted. 
+```bash
+pip install -e ".[dev]"
+ruff check modules/
+pytest tests/
+databricks bundle validate -e dev
+databricks bundle validate -e prod
+```
+
+## Pull request checklist
+
+- [ ] Changes are scoped to the described problem
+- [ ] `ruff check modules/` passes
+- [ ] `pytest tests/` passes (for helper changes)
+- [ ] `databricks bundle validate` passes for dev and prod
+- [ ] Documentation updated (`README.md`, `docs/`, or `CHANGELOG.md` as appropriate)
+- [ ] `CHANGELOG.md` updated under `[Unreleased]` for user-visible changes
+
+## Coding style
+
+- Match existing notebook and Python conventions in `modules/utils/`
+- Prefer extending shared helpers over duplicating notebook logic
+- Keep demo-only GPL dependencies (`asammdf`) isolated to `demo_setup`
+
+## Reporting issues
+
+Use the GitHub issue templates for bugs and feature requests. For security issues, see [SECURITY.md](SECURITY.md).
