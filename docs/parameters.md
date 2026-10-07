@@ -62,5 +62,5 @@ Defined in [`databricks.yml`](../databricks.yml); override with `--var=<name>=<v
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `warehouse_name` | `Shared Unity Catalog Serverless` | Name of the SQL warehouse backing the `MDF_Report` dashboard, resolved to `warehouse_id` by lookup. Must resolve for **any** `deploy`/`run` (the dashboard is validated with the whole bundle). Override per workspace. |
-| `catalog` / `schema` | `mda_demo` / `default` | Default UC location for both jobs |
+| `catalog` / `schema` | `mda_demo` / `default` | UC location for both jobs and the `MDF_Report` dashboard (`dataset_catalog`/`dataset_schema`). Use a dedicated schema — demo reset drops it. |
 | `spark_version` | `16.4.x-scala2.12` | Prod ingest job-cluster runtime (must be Python 3.12) |
