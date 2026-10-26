@@ -147,10 +147,21 @@ databricks bundle deploy -e dev --var=warehouse_name="<your warehouse>"
 databricks bundle run    -e dev MDA_Report --var=warehouse_name="<your warehouse>"
 ```
 
-> **Note:** the dashboard's dataset queries reference `mda_demo.default.*` directly — bundle
-> `${var.*}` placeholders are **not** substituted inside `.lvdash.json`. If you deploy to a
-> different catalog/schema, edit the table names in `dashboards/MDF_Report.lvdash.json`. The
-> `signal_report` notebook itself is parameterized via `catalog`/`schema` widgets.
+### Target catalog / schema
+
+Both jobs and the dashboard write to / read from `${var.catalog}.${var.schema}` (default
+`mda_demo.default`). Override them on **every** `deploy`/`run`:
+
+```bash
+databricks bundle deploy -e dev --var=catalog=<your_catalog> --var=schema=<your_schema>
+databricks bundle run    -e dev MDA_Demo --var=catalog=<your_catalog> --var=schema=<your_schema>
+```
+
+The dashboard's dataset queries use unqualified table names and resolve against the
+`dataset_catalog`/`dataset_schema` set from these variables, so no JSON edits are needed.
+
+> **⚠️ Use a dedicated schema.** In demo mode the first run (or `reset=True`) executes
+> `DROP SCHEMA <catalog>.<schema> CASCADE`. Never point the bundle at a shared, pre-existing schema.
 
 ## Parameters
 

@@ -4,14 +4,14 @@
       "name": "ds_container",
       "displayName": "container_metrics",
       "queryLines": [
-        "SELECT * FROM mda_demo.default.container_metrics"
+        "SELECT * FROM container_metrics"
       ]
     },
     {
       "name": "ds_channel",
       "displayName": "channel_metrics",
       "queryLines": [
-        "SELECT * FROM mda_demo.default.channel_metrics"
+        "SELECT * FROM channel_metrics"
       ]
     },
     {
@@ -19,7 +19,7 @@
       "displayName": "rpm_histogram",
       "queryLines": [
         "SELECT lower_bound, MEASURE(total_duration_s) AS duration_s\n",
-        "FROM mda_demo.default.mv_report_histogram\n",
+        "FROM mv_report_histogram\n",
         "WHERE histogram_name = 'rpm_histogram'\n",
         "GROUP BY lower_bound ORDER BY lower_bound"
       ]
@@ -29,7 +29,7 @@
       "displayName": "speed_histogram",
       "queryLines": [
         "SELECT lower_bound, MEASURE(total_duration_s) AS duration_s\n",
-        "FROM mda_demo.default.mv_report_histogram\n",
+        "FROM mv_report_histogram\n",
         "WHERE histogram_name = 'speed_histogram'\n",
         "GROUP BY lower_bound ORDER BY lower_bound"
       ]
@@ -39,7 +39,7 @@
       "displayName": "rpm_speed_heatmap",
       "queryLines": [
         "SELECT x_lower_bound, y_lower_bound, MEASURE(total_duration_s) AS duration_s\n",
-        "FROM mda_demo.default.mv_report_heatmap\n",
+        "FROM mv_report_heatmap\n",
         "GROUP BY x_lower_bound, y_lower_bound"
       ]
     },
@@ -48,7 +48,7 @@
       "displayName": "container_stats",
       "queryLines": [
         "SELECT container_id, channel_name, aggregation_label, MEASURE(stat_value) AS statistic_value\n",
-        "FROM mda_demo.default.mv_report_stats\n",
+        "FROM mv_report_stats\n",
         "WHERE stats_name = 'container_stats'\n",
         "GROUP BY container_id, channel_name, aggregation_label"
       ]
@@ -58,7 +58,7 @@
       "displayName": "values_at_distance_milestones",
       "queryLines": [
         "SELECT container_id, MEASURE(milestone_speed) AS vehicle_speed, MEASURE(milestone_rpm) AS engine_rpm\n",
-        "FROM mda_demo.default.mv_report_stats\n",
+        "FROM mv_report_stats\n",
         "WHERE stats_name = 'values_at_distance_milestones'\n",
         "GROUP BY container_id, event_instance_id"
       ]
@@ -68,7 +68,7 @@
       "displayName": "status",
       "config": {
         "version": "1.1",
-        "source": "mda_demo.default.status",
+        "source": "status",
         "dimensions": [
           {
             "expr": "source.*"

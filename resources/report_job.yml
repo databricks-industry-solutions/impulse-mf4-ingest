@@ -25,8 +25,8 @@ resources:
       display_name: MDF4 Signal Report
       file_path: ../dashboards/MDF_Report.lvdash.json
       warehouse_id: ${var.warehouse_id}
-      # NOTE: the dashboard's dataset queries reference mda_demo.default.* directly
-      # (bundle ${var.*} placeholders are not substituted inside .lvdash.json — they
-      # reach Terraform verbatim). If you deploy to a different catalog/schema, edit
-      # the table names in dashboards/MDF_Report.lvdash.json. The signal_report
-      # notebook, by contrast, is parameterized via the catalog/schema widgets.
+      # The dashboard's dataset queries use unqualified table names; these set the
+      # default catalog/schema they resolve against (bundle ${var.*} placeholders are
+      # not substituted inside .lvdash.json itself).
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${var.schema}

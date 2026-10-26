@@ -18,4 +18,4 @@ Import the `.dbquery.ipynb` notebooks into your workspace and replace placeholde
 
 ## Dashboards
 
-- **MDF4 Signal Report** — [`../dashboards/MDF_Report.lvdash.json`](../dashboards/MDF_Report.lvdash.json). Deployed automatically by the bundle with the `MDA_Report` job. Two pages: **Signal Report** (silver metrics — drives, signals, durations) and **Report Results** (the Gold `report_*` tables — RPM/speed histograms, RPM-vs-speed heatmap, per-drive stats, 10 km milestones). Its dataset queries reference `mda_demo.default.*`; edit the JSON if you deploy elsewhere.
+- **MDF4 Signal Report** — [`../dashboards/MDF_Report.lvdash.json`](../dashboards/MDF_Report.lvdash.json). Deployed automatically by the bundle with the `MDA_Report` job. Two pages: **Signal Report** (silver metrics — drives, signals, durations) and **Report Results** (the Gold `report_*` tables — RPM/speed histograms, RPM-vs-speed heatmap, per-drive stats, 10 km milestones). Its dataset queries use unqualified table names, resolved against the `catalog`/`schema` bundle variables.

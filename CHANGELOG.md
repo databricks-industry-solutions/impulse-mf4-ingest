@@ -31,6 +31,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - File sizes resolved on driver instead of executor UDF
 - Delta `targetFileSize` set once at table creation in demo setup
 - Parallel `channel_metadata` and `container_metadata` after ingest
+- `MDF4 Signal Report` dashboard now follows the `catalog`/`schema` bundle variables via
+  `dataset_catalog`/`dataset_schema` (queries use unqualified table names) instead of hardcoding
+  `mda_demo.default`
 
 ### Removed
 
